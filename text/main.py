@@ -7,10 +7,6 @@ from sklearn.metrics import f1_score
 from transformers import BertForSequenceClassification
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 import matplotlib.pyplot as plt
-import os 
-from loadenv import load_dotenv
-
-load_dotenv()
 
 
 class MyModel(L.LightningModule):
@@ -66,7 +62,6 @@ class MyModel(L.LightningModule):
         )
         self.validation_results["texts"].extend(text)
 
-
     def on_validation_epoch_end(self):
         all_logits = self.validation_results["logits"]
         all_labels = self.validation_results["labels"]
@@ -78,6 +73,7 @@ class MyModel(L.LightningModule):
             labels=[0, 1, 2, 3, 4, 5, 6, 7],
         )
         fig, ax = plt.subplots(figsize=(6, 6))
+
         disp = ConfusionMatrixDisplay(
             confusion_matrix=cm, display_labels=[id2label[idx] for idx in range(8)]
         )
@@ -89,43 +85,44 @@ class MyModel(L.LightningModule):
             average="micro",
         )
 
-        self.logger.experiment.add_figure("validation/confusion_matrix", fig, self.current_epoch)
+        self.logger.experiment.add_figure(
+            "validation/confusion_matrix", fig, self.current_epoch
+        )
         self.log("validation/f1_micro", f1_micro, prog_bar=True)
 
         # NOTE: log incorrect predictions to TensorBoard
+
         incorrect_indices = [
-            i
-            for i in range(len(self.validation_results["logits"]))
-            if self.validation_results["logits"][i]
-            != self.validation_results["labels"][i]
+            sample
+            for sample in range(len(self.validation_results["logits"]))
+            if self.validation_results["logits"][sample]
+            != self.validation_results["labels"][sample]
         ]
 
-        max_incorrect = 5
-        for idx in range(len(incorrect_indices)):
-            i = incorrect_indices[idx]
-            if idx >= max_incorrect:
+        count = 0
+        for idx in incorrect_indices:
+            if count >= 10:
                 break
+            log_text = f"{self.validation_results['texts'][idx]}"
             self.logger.experiment.add_text(
-                "validation/incorrect_predictions",
-                f"Text: {self.validation_results['texts'][i]}\n"
-                f"Predicted: {id2label[self.validation_results['logits'][i]]}, "
-                f"Actual: {id2label[self.validation_results['labels'][i]]}\n",
-                self.current_epoch,
+                "validation/incorrect_predictions", log_text, self.current_epoch
             )
-
+            count += 1
 
         self.validation_results["logits"].clear()
         self.validation_results["labels"].clear()
         self.validation_results["texts"].clear()
         print(f"F1 Micro: {f1_micro}")
 
+
 def train(model):
-    logger = TensorBoardLogger("tb_logs", name="Bert_model", log_graph=True)
+    logger = TensorBoardLogger("tb_logs", name="Bert_model")
     trainer = L.Trainer(max_epochs=5, accelerator="auto", devices="auto", logger=logger)
     train_loader, val_loader, test_loader = get_data_loaders(batch_size=32)
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     # trainer.test(model, dataloaders=test_loader)
+
 
 if __name__ == "__main__":
     model = MyModel()
