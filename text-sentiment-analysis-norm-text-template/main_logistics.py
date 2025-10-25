@@ -1,20 +1,21 @@
 import torch
 import pytorch_lightning as L
-from DataTransforms.get_data_loader import x_train, y_train, x_val, y_val
+from DataTransforms.get_data_loader import x_train, y_train, x_val, y_val, train_loader, val_loader
 from torch import nn
 from torchmetrics.functional.classification import accuracy
 from sklearn.linear_model import LogisticRegression
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, 
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer 
 from sklearn.metrics import accuracy_score,classification_report, ConfusionMatrixDisplay
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 class LogisticRegressionModel(nn.Module):
-    def __init__(self, num_features):
+    def __init__(self, inum_features, output_dim):
         super().__init__()
-        self.linear = nn.Linear(num_features, 1)
+        self.linear = nn.Linear(inum_features, output_dim)
 
     def forward(self, x):
-        return torch.sigmoid(self.linear(x))
+        return self.linear(x)
 
 
 class Sentiment_Analysis_LSTM_model(L.LightningModule):
@@ -23,25 +24,27 @@ class Sentiment_Analysis_LSTM_model(L.LightningModule):
         self.num_classes = num_classes
 
         self.embedding = nn.Embedding(31000, 256, padding_idx=1)  # 64x64x256
-        self.logistic = nn.Linear(256, 3)  # 64x64x3
-        self.proj = nn.Linear(256, 128)  # 64x64
+        self.fc_1 = nn.Sequential(
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+        )
+
+        self.logistic_1 = nn.Sequential(
+            nn.Linear(128, num_classes),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+        )
 
         # Loss and Acc
         self.criterion = torch.nn.CrossEntropyLoss()
         self.accuracy = accuracy  # Đảm bảo bạn đã import hàm này
 
     def forward(self, x, time=None, age=None, country=None):
-        text_model = self.embedding(x)
-        text_model = self.proj(text_model)  # 64x64x128
-        lstm_out, _ = self.lstm_1(text_model)  # 64x64x512
-        lstm_out = self.dropout_1(lstm_out)
-        lstm_out = self.layer_norm_1(lstm_out)
-        lstm_out, (hidden, _) = self.lstm_2(lstm_out)  # 64x256
-        lstm_out = self.dropout_2(hidden.squeeze(0))  # Sử dụng hidden state cuối cùng
-        lstm_out = self.layer_norm_2(lstm_out)
-        attn_output, _ = self.attn(lstm_out, lstm_out, lstm_out)  # 64x256
-        logits = self.tail(attn_output)  # 64xnum_classes
-
+        logits = self.embedding(x)  
+        logits = self.fc_1(logits)
+        logits = self.logistic_1(logits.mean(dim=1))
+        print("Logits shape:", logits.shape)
         return logits
 
     def training_step(self, batch, batch_idx: int):
@@ -131,16 +134,18 @@ def train(model):
     # )
     # trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     # trainer.test(model, dataloaders=test_loader)
-    lr = LogisticRegression()
-    x = x_train.drop(columns=["Age of User", "Time of Tweet", "Country"])
-    x = TfidfVectorizer().fit_transform(x["text"]).toarray()
 
-    x_val = x_val.drop(columns=["Age of User", "Time of Tweet", "Country"])
-    x_val = TfidfVectorizer().fit_transform(x_val["text"]).toarray()
+    lr = LogisticRegression()
+    vector = TfidfVectorizer()
+    x = x_train.drop(columns=["Age of User", "Time of Tweet", "Country"])
+    x = vector.fit_transform(x["text"]).toarray()
+
+    x_val1 = x_val.drop(columns=["Age of User", "Time of Tweet", "Country"])
+    x_val1 = vector.transform(x_val1["text"]).toarray()
 
     lr.fit(x, y_train)
 
-    pred = lr.predict(x_val)
+    pred = lr.predict(x_val1)
     score = accuracy_score(y_val, pred)
     print("Accuracy:", score)
 
