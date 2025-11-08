@@ -1,2 +1,5 @@
 **/tb_logs/**
 **/Attachments/**
+**/checkpoints/**
+**/__pycache__/**
+
