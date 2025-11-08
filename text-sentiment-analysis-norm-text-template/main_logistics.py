@@ -1,11 +1,23 @@
 import torch
 import pytorch_lightning as L
-from DataTransforms.get_data_loader import x_train, y_train, x_val, y_val, train_loader, val_loader
+from DataTransforms.get_data_loader import (
+    x_train,
+    y_train,
+    x_val,
+    y_val,
+    train_loader,
+    val_loader,
+)
 from torch import nn
 from torchmetrics.functional.classification import accuracy
 from sklearn.linear_model import LogisticRegression
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer 
-from sklearn.metrics import accuracy_score,classification_report, ConfusionMatrixDisplay
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    ConfusionMatrixDisplay,
+)
+from sklearn.ensemble import GradientBoostingRegressor
 from pytorch_lightning.loggers import TensorBoardLogger
 
 
@@ -38,13 +50,12 @@ class Sentiment_Analysis_LSTM_model(L.LightningModule):
 
         # Loss and Acc
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.accuracy = accuracy  # Đảm bảo bạn đã import hàm này
+        self.accuracy = accuracy
 
     def forward(self, x, time=None, age=None, country=None):
-        logits = self.embedding(x)  
+        logits = self.embedding(x)
         logits = self.fc_1(logits)
         logits = self.logistic_1(logits.mean(dim=1))
-        print("Logits shape:", logits.shape)
         return logits
 
     def training_step(self, batch, batch_idx: int):
@@ -137,11 +148,11 @@ def train(model):
 
     lr = LogisticRegression()
     vector = TfidfVectorizer()
-    x = x_train.drop(columns=["Age of User", "Time of Tweet", "Country"])
-    x = vector.fit_transform(x["text"]).toarray()
+    x = x_train.drop(columns=["Age of User", "Time of Tweet", "Country"])  # type: ignore
+    x = vector.fit_transform(x["text"]).toarray()  # type: ignore
 
-    x_val1 = x_val.drop(columns=["Age of User", "Time of Tweet", "Country"])
-    x_val1 = vector.transform(x_val1["text"]).toarray()
+    x_val1 = x_val.drop(columns=["Age of User", "Time of Tweet", "Country"])  # type: ignore
+    x_val1 = vector.transform(x_val1["text"]).toarray()  # type: ignore
 
     lr.fit(x, y_train)
 

@@ -28,32 +28,75 @@ for enc in encodings:
     except UnicodeDecodeError:
         print(f"Cant read with: {enc}")
 
+from spacy.lang.vi import Vietnamese
+
 nlp = Vietnamese()
 
 
-def text_normalize(text):
+def text_normalize(
+    text,
+    remove_urls=True,
+    remove_emails=True,
+    remove_mentions=True,
+    remove_hashtags=True,
+    remove_numbers=False,
+):
+    """
+    Normalize and clean Vietnamese text with additional regex steps:
+    - remove/normalize URLs, emails, mentions, hashtags, phone numbers, currency symbols
+    - remove non-printable characters, reduce repeated punctuation and elongated letters
+    - optional removal of digits
+    Returns cleaned string (tokens joined by space) after spaCy tokenization and stopword filtering.
+    """
     try:
         text = str(text)
-        text = text.lower()  # lowercase
-        text = re.sub(r"^RT[\s]+", "", text)  # remove RT in tweet
+        # basic normalization
+        text = text.strip().lower()
 
-        # text = re.sub(r"https?://[^\s]+(?:\s*[-:])?", "", text)  # remove URLs
-        text = re.sub("https?://\S+|www\.\S+", "", text)
+        # remove urls
+        if remove_urls:
+            text = re.sub(r"https?://\S+|www\.\S+", " ", text)
+        # remove emails
+        if remove_emails:
+            text = re.sub(r"\S+@\S+", " ", text)
+        # remove html tags
+        text = re.sub(r"<.*?>", " ", text)
+        # mentions (@username)
+        if remove_mentions:
+            text = re.sub(r"@\w+", " ", text)
+        # hashtags: keep the word but drop the #
+        if remove_hashtags:
+            text = re.sub(r"#(\w+)", r"\1", text)
+        # remove phone numbers (simple patterns)
+        text = re.sub(r"\b0\d{8,}\b|\b\d{9,}\b", " ", text)
+        # replace common currency symbols with space
+        text = re.sub(r"[\$€£¥₫]", " ", text)
 
-        text = re.sub(r"<.*?>", "", text)  # remove HTML tags
-        text = re.sub("\n", " ", text)  # thay thế xuống dòng bằng khoảng trắng
-        text = re.sub("[%s]" % re.escape(string.punctuation), "", text)
+        # remove punctuation (translate to space to avoid joining words)
+        text = re.sub(r"[%s]" % re.escape(string.punctuation), " ", text)
 
-        # re.sub(r"[^\w\s]", "", text)
-        # re.sub(r"[^a-zA-Z0-9\s]", "", str(text)) # <- Dòng này phá hủy tiếng Việt
-        # re.sub(r"\s+", " ", str(text)).strip()
-        # re.sub("\w*\d\w*", "", text)
+        # remove non-printable characters
+        text = "".join(ch for ch in text if ch.isprintable())
 
+        # collapse repeated punctuation (e.g., '!!!' -> '!')
+        text = re.sub(r"([!?.]){2,}", r"\1", text)
+        # reduce elongated characters (>2 repeats -> 2 repeats) e.g. heyyyy -> heyy
+        text = re.sub(r"(.)\1{2,}", r"\1\1", text)
+
+        # optionally remove digits entirely
+        if remove_numbers:
+            text = re.sub(r"\d+", " ", text)
+
+        # normalize whitespace
+        text = re.sub(r"\s+", " ", text).strip()
+
+        # tokenize with spaCy (Vietnamese) and filter stopwords/punct/space
         doc = nlp(text)
-
         cleaned_tokens = []
         for token in doc:
+            # Keep tokens that are not stopwords/punctuation/space
             if not token.is_stop and not token.is_punct and not token.is_space:
+                # filter out tokens that contain digits (optional already handled above)
                 if not any(char.isdigit() for char in token.text):
                     cleaned_tokens.append(token.lower_)
 

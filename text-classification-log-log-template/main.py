@@ -123,7 +123,6 @@ def train(model):
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     # trainer.test(model, dataloaders=test_loader)
 
-
 if __name__ == "__main__":
     model = MyModel()
     train(model)

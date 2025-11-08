@@ -3,9 +3,8 @@ import pytorch_lightning as L
 from pytorch_lightning.loggers import TensorBoardLogger
 from DataTransforms.get_data_loader import train_loader, val_loader, test_loader
 from torch import nn
-
 from torchmetrics.functional.classification import accuracy
-
+from sklearn.linear_model import LogisticRegression
 
 class NER_LSTM(L.LightningModule):
     def __init__(self, num_classes):
@@ -17,11 +16,13 @@ class NER_LSTM(L.LightningModule):
         self.lstm_1 = nn.LSTM(
             128, 256, num_layers=4, batch_first=True, bidirectional=True
         )
+
         self.dropout_1 = nn.Dropout(0.2)
         self.batch_norm_1 = nn.BatchNorm1d(512)
         self.lstm_2 = nn.LSTM(
             512, 256, num_layers=4, batch_first=True, bidirectional=False
         )
+
         self.dropout_2 = nn.Dropout(0.2)
         self.batch_norm_2 = nn.BatchNorm1d(256)
         # Project to class logits per token
@@ -33,7 +34,6 @@ class NER_LSTM(L.LightningModule):
 
     def forward(self, x):
         x = self.embedding(x)
-        print(x.shape)
         x = self.proj(x)
         x, _ = self.lstm_1(x)
         x = self.dropout_1(x)
@@ -86,6 +86,7 @@ class NER_LSTM(L.LightningModule):
         )
         self.log("val_loss", loss, prog_bar=True)
         self.log("val_acc", acc, prog_bar=True)
+        
 
     def test_step(self, batch, batch_idx: int):
         x, y = batch[0], batch[1]

@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 import json
 import random
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from DataTransforms.test import token_cutmix_swap_torch
 
 
 encodings = ["utf-8", "utf-8-sig", "latin1", "ISO-8859-1", "cp1252"]
@@ -35,12 +36,13 @@ def MLM(text, mask_prob=0.3):
 
     return " ".join(tokens)
 
+
 class CustomCollator(Dataset):
     def __init__(self, input_data, label, tokenizer, max_length, is_train=True):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.text = input_data["text"].tolist()
-        self.sentiment = label.tolist() 
+        self.sentiment = label.tolist()
         self.time = input_data["Time of Tweet"].tolist()
         self.age = input_data["Age of User"].tolist()
         self.country = input_data["Country"].tolist()
@@ -51,7 +53,7 @@ class CustomCollator(Dataset):
 
     def __getitem__(self, idx):
         text = self.text[idx]
-        # text = MLM(text) 
+        # text = MLM(text)
 
         sentiment = [0 for _ in range(3)]
         sentiment[self.sentiment[idx]] = 1
@@ -62,19 +64,28 @@ class CustomCollator(Dataset):
         age = [0 for _ in range(100)]
         age_ids = self.age[idx]
         for age_id in json.loads(age_ids):
-            age[int(age_id)-1] = 1
+            age[int(age_id) - 1] = 1
 
         country = [0 for _ in range(195)]
         country[self.country[idx]] = 1
 
         encoding = self.tokenizer.encode(text).ids
 
+        if torch.rand(1).item() < 0.5 and self.is_train:
+            encoding, sentiment, sw, idx = token_cutmix_swap_torch(
+                torch.tensor(encoding, dtype=torch.long).unsqueeze(0),
+                torch.tensor(sentiment, dtype=torch.float),
+                device="cpu",
+            )
+            encoding = torch.tensor(encoding, dtype=torch.long).squeeze(0).tolist()
+            sentiment = torch.tensor(sentiment, dtype=torch.float).squeeze(0).tolist()
+
         return (
-            torch.tensor(encoding, dtype=torch.long), # 64x64
-            torch.tensor(sentiment, dtype=torch.float), # 64x3
-            torch.tensor(time, dtype=torch.long), # 64x3
-            torch.tensor(age, dtype=torch.long), # 64x100
-            torch.tensor(country, dtype=torch.long), # 64x195
+            torch.tensor(encoding, dtype=torch.long),  # 64x64
+            torch.tensor(sentiment, dtype=torch.float),  # 64x3
+            torch.tensor(time, dtype=torch.long),  # 64x3
+            torch.tensor(age, dtype=torch.long),  # 64x100
+            torch.tensor(country, dtype=torch.long),  # 64x195
         )
 
 
@@ -126,5 +137,3 @@ val_loader = DataLoader(
     validation_dataset, batch_size=64, shuffle=False, drop_last=True
 )
 # test_loader = DataLoader(testing_dataset, shuffle=False)
-
-

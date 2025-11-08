@@ -3,9 +3,7 @@ import pytorch_lightning as L
 from pytorch_lightning.loggers import TensorBoardLogger
 from DataTransforms.get_data_loader import train_loader, val_loader
 from torch import nn
-
 from torchmetrics.functional.classification import accuracy
-
 
 class Sentiment_Analysis_LSTM_model(L.LightningModule):
     def __init__(self, num_classes):

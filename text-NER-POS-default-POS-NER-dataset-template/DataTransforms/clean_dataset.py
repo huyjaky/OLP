@@ -12,9 +12,10 @@ for enc in encodings:
         print(f"Cant read with: {enc}")
 
 
+
 df = df[~df["POS"].isin(["$", "|", "``", ".", ",", ":", ";"])]
 
-# # Tạo mapping
+# Tạo mapping
 id2tag = {k: v for k, v in enumerate(df["Tag"].unique())}
 id2pos = {k: v for k, v in enumerate(df["POS"].unique())}
 tag2id = {v: k for k, v in id2tag.items()}
