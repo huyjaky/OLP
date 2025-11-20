@@ -25,7 +25,7 @@ corpus = df["question_text"].apply(lambda x: str(x)).tolist()  # type: ignore
 data_size = len(corpus)
 
 
-def create_tokenizer(vocab_size: int = 31000, sequence_length: int = 64):
+def create_tokenizer(vocab_size: int = 3000, sequence_length: int = 64):
     # tokenizer = Tokenizer(WordPiece(unk_token="[UNK]"))  # type: ignore
     tokenizer = Tokenizer(Unigram()) # type: ignore
     tokenizer.pre_tokenizer = Whitespace()  # type: ignore

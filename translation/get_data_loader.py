@@ -6,7 +6,7 @@ import torch
 from norm_text import text_normalize
 
 # ds = load_dataset("thainq107/iwslt2015-en-vi", cache_dir="./data_cache")
-ds = load_dataset("./data_cache/")
+ds = load_dataset("./Attachments/")
 
 # convert train_dataset to pandas dataframe
 # train_df = pd.DataFrame(ds["train"]).map(text_normalize)

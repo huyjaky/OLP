@@ -1,15 +1,20 @@
 from tokenizers import Tokenizer
-from tokenizers.models import WordLevel, BPE, WordPiece, Unigram
+from tokenizers.models import BPE, WordLevel, WordPiece, Unigram
+from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.trainers import (
-    WordLevelTrainer,
     BpeTrainer,
+    WordLevelTrainer,
     WordPieceTrainer,
     UnigramTrainer,
 )
-from tokenizers.pre_tokenizers import Whitespace
 
 
-def create_tokenizer(corpus, vocab_size=3000, sequence_length=64, cache_path=None):
+def create_tokenizer(
+    corpus: list[str],
+    cache_path: str,
+    vocab_size: int = 9000,
+    sequence_length: int = 128,
+) -> Tokenizer:
     tokenizer = Tokenizer(Unigram())
     # tokenizer = Tokenizer(WordPiece(unk_token="[UNK]"))
     tokenizer.pre_tokenizer = Whitespace()
@@ -23,8 +28,10 @@ def create_tokenizer(corpus, vocab_size=3000, sequence_length=64, cache_path=Non
     # trainer = WordPieceTrainer(
     #     vocab_size=vocab_size,
     #     unk_token="[UNK]",
-    #     special_tokens=["[PAD]", "[UNK]", "[SOS]", "[EOS]", "[MASK]", "[CLS]"],
+    #     special_tokens=["[PAD]", "[UNK]", "[SOS]", "[EOS]", "[SEP]", "[MASK]", "[CLS]"],
     # )
     tokenizer.train_from_iterator(corpus, trainer=trainer)
-    tokenizer.save(cache_path) if cache_path else None
+    tokenizer.save(cache_path)
     return tokenizer
+
+

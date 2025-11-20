@@ -15,19 +15,17 @@ class TextClassifier(L.LightningModule):
         self.output_dim = output_dim
 
         self.embedding = nn.Embedding(
-            num_embeddings=31000, embedding_dim=input_dim, padding_idx=1
+            num_embeddings=3000, embedding_dim=input_dim, padding_idx=0
+            
         )  # 32x64x64
         self.trans = nn.Transformer(
             d_model=input_dim,
             activation="gelu",
             batch_first=True,
             dropout=0.2,
-            num_encoder_layers=4,
-            num_decoder_layers=2,
-            nhead=8,
-            # dim_feedforward=64*256,
-            # norm_first=True,
-        )  # 32x64x64
+            num_encoder_layers=7,
+            num_decoder_layers=0,
+            nhead=8,)  # 32x64x64
         self.dense = nn.Linear(input_dim, output_dim)
 
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -68,7 +66,7 @@ class TextClassifier(L.LightningModule):
         self.log("val_acc", acc, prog_bar=True)
 
     def configure_optimizers(self):  # type: ignore
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-5)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-5)
         return {
             "optimizer": optimizer,
             "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -100,7 +98,7 @@ def train(model):
     trainer.fit(
         model, train_dataloaders=training_loader, val_dataloaders=validation_loader
     )
-    trainer.test(model, dataloaders=testing_loader)
+    # trainer.test(model, dataloaders=testing_loader)
 
 
 if __name__ == "__main__":
