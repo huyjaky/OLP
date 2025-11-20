@@ -3,4 +3,5 @@
 **/checkpoints/**
 **/__pycache__/**
 **/lightning_logs/**
+**/*.zip
 
