@@ -9,3 +9,6 @@
 **/*.csv
 **/*.jsonl
 **/*.json
+**/*.safetensors
+**/*.model
+**/*.vocab
