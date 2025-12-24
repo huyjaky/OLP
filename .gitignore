@@ -12,3 +12,4 @@
 **/*.safetensors
 **/*.model
 **/*.vocab
+!**/data-analysis/**/*.txt
